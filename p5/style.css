@@ -1,0 +1,109 @@
+/* 기본 페이지 스타일 */
+body {
+  margin: 0;
+  padding: 0;
+  background: #f0f0f0;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+/* 컨테이너: 중앙 정렬, 최대 너비, 여백 및 그림자 효과 */
+.container {
+  max-width: 500px;
+  margin: 20px auto;
+  background: #fff;
+  border-radius: 10px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  padding: 20px;
+}
+
+/* 제목 스타일 */
+h1 {
+  text-align: center;
+  color: #333;
+  margin-bottom: 10px;
+}
+
+/* 시리얼 정보 텍스트 스타일 */
+.info {
+  text-align: center;
+  font-size: 18px;
+  color: #555;
+  margin: 10px 0;
+}
+
+/* 신호등 인디케이터 영역: 중앙 정렬 */
+.traffic-light-indicators {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+/* 원형 LED 인디케이터: 기본 꺼진 상태 */
+.circle {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  display: inline-block;
+  margin: 0 10px;
+  background-color: rgb(50, 50, 50); /* 꺼짐 상태 색상 */
+}
+
+/* 슬라이더 컨테이너 */
+.slider-container {
+  margin: 20px 0;
+  position: relative;
+}
+
+/* 슬라이더 레이블 */
+.slider-container label {
+  display: block;
+  font-weight: bold;
+  margin-bottom: 5px;
+  color: #333;
+}
+
+/* 슬라이더 전체 너비 */
+input[type="range"] {
+  width: 100%;
+}
+
+/* 슬라이더 눈금 컨테이너 */
+.ticks {
+  position: relative;
+  width: 100%;
+  height: 20px;
+  margin-top: 5px;
+}
+
+/* 개별 눈금 스타일 */
+.tick {
+  position: absolute;
+  top: 0;
+  transform: translateX(-50%);
+  font-size: 12px;
+  color: #333;
+}
+
+/* 시리얼 연결 버튼 스타일 */
+.connect-button {
+  display: block;
+  width: 180px;
+  margin: 0 auto 20px auto;
+  padding: 10px;
+  background: #007acc;
+  border: none;
+  border-radius: 5px;
+  color: #fff;
+  font-size: 16px;
+  cursor: pointer;
+  transition: background 0.3s;
+}
+
+/* 버튼 호버 효과 */
+.connect-button:hover {
+  background: #005fa3;
+}
+
+/* p5.js 캔버스 숨김 */
+canvas {
+  display: none;
+}
