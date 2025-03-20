@@ -25,13 +25,15 @@ void serialInputTaskCallback() {
     String input = Serial.readStringUntil('\n');  // 개행 문자까지 읽음
     input.trim();  // 문자열 양쪽의 공백 제거
     if (input.length() > 0) {
+      // 첫 번째와 두 번째 쉼표 위치를 찾아서 세 값으로 분리
       int firstComma = input.indexOf(',');
       int secondComma = input.indexOf(',', firstComma + 1);
       if (firstComma != -1 && secondComma != -1) {
+        // 쉼표를 기준으로 각 부분을 정수로 변환
         unsigned int newRed = input.substring(0, firstComma).toInt();
         unsigned int newYellow = input.substring(firstComma + 1, secondComma).toInt();
         unsigned int newGreen = input.substring(secondComma + 1).toInt();
-
+        // 새로 입력받은 값들이 유효한 양수이면 각 유지시간을 갱신
         if (newRed > 0 && newYellow > 0 && newGreen > 0) {
           intervalRed = newRed;
           intervalYellow = newYellow;
@@ -68,13 +70,13 @@ void serialInputTaskCallback() {
     String input = Serial.readStringUntil('\n');
     input.trim();
     if (input.length() == 0) { return; }
-
     int comma1 = input.indexOf(',');
     int comma2 = (comma1 == -1) ? -1 : input.indexOf(',', comma1 + 1);
     int comma3 = (comma2 == -1) ? -1 : input.indexOf(',', comma2 + 1);
 
     // 쉼 표 3개가 없으면 그냥 무시하거나 에러 메시지
     if (comma1 == -1 || comma2 == -1 || comma3 == -1) {
+      // 필요하다면 에러 메시지
       Serial.println("Invalid format: must have 3 commas, e.g. 2000,500,2000,");
       return;
     }
@@ -91,6 +93,7 @@ void serialInputTaskCallback() {
     unsigned int newGreen  = token3.toInt();
 
     if (newRed > 0 && newYellow > 0 && newGreen > 0) {
+      // 듀레이션 업데이트
       intervalRed    = newRed;
       intervalYellow = newYellow;
       intervalGreen  = newGreen;
