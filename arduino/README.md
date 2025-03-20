@@ -1,8 +1,171 @@
-# Arduino 신호등 제어 코드
+# (확장) Arduino 신호등 제어 코드
 
-본 문서는 `arduino/src/main.cpp`에 작성된 신호등 제어 코드의 전체 동작 원리와 각 함수의 역할을 설명합니다.
+아두이노 코드는 전체적인 로직(상태 머신, 버튼 인터럽트, TaskScheduler 등)에 큰 변화가 없지만,  
+**시리얼 입력 태스크(`serialInputTaskCallback()`)**에서 **모드 변경** 기능을 함께 처리하도록 확장했습니다.  
+이 아래에서는 (기존 코드)와 (확장 코드)를 비교하고, **어떤 점이 달라졌는지**를 정리합니다.
 
 ---
+
+## 기능의 변동사항: `serialInputTaskCallback()` 함수
+
+### (기존 코드 )
+
+```cpp
+// -------------------------
+// (기존) 시리얼 입력 태스크: 외부에서 LED 유지시간을 업데이트하기 위한 입력 처리
+// -------------------------
+/**
+ * @brief 시리얼로부터 입력받은 문자열을 파싱하여 LED 유지시간(intervalRed, intervalYellow, intervalGreen)을 갱신한다.
+ *
+ * 입력 형식: "2000,500,2000" 처럼 쉼표로 구분된 세 개의 정수값을 기대.
+ */
+void serialInputTaskCallback() {
+  // 시리얼 버퍼에 데이터가 있을 때 처리
+  if (Serial.available()) {
+    String input = Serial.readStringUntil('\n');  // 개행 문자까지 읽음
+    input.trim();  // 문자열 양쪽의 공백 제거
+    if (input.length() > 0) {
+      int firstComma = input.indexOf(',');
+      int secondComma = input.indexOf(',', firstComma + 1);
+      if (firstComma != -1 && secondComma != -1) {
+        unsigned int newRed = input.substring(0, firstComma).toInt();
+        unsigned int newYellow = input.substring(firstComma + 1, secondComma).toInt();
+        unsigned int newGreen = input.substring(secondComma + 1).toInt();
+
+        if (newRed > 0 && newYellow > 0 && newGreen > 0) {
+          intervalRed = newRed;
+          intervalYellow = newYellow;
+          intervalGreen = newGreen;
+          Serial.print("Intervals updated to: ");
+          Serial.print(intervalRed);
+          Serial.print(", ");
+          Serial.print(intervalYellow);
+          Serial.print(", ");
+          Serial.println(intervalGreen);
+        } else {
+          Serial.println("Invalid intervals provided.");
+        }
+      } else {
+        Serial.println("Invalid input format. Use: 2000,500,2000");
+      }
+    }
+  }
+}
+```
+### (확장 코드)
+```cpp
+// -------------------------
+// (확장) 시리얼 입력 태스크: LED 유지시간 + 모드 변경(옵션)
+// -------------------------
+/**
+ * @brief 시리얼로부터 입력받은 문자열을 파싱하여 LED 유지시간(세 필드)과 모드 변경(옵션)을 갱신한다.
+ *
+ * 입력 형식: "2000,500,2000,PCINT2"
+ * 모드 필드는 변경이 필요할 때만 값을 포함하며, 빈 문자열일 경우 유지시간만 업데이트한다.
+ */
+void serialInputTaskCallback() {
+  if (Serial.available()) {
+    String input = Serial.readStringUntil('\n');
+    input.trim();
+    if (input.length() == 0) { return; }
+
+    int comma1 = input.indexOf(',');
+    int comma2 = (comma1 == -1) ? -1 : input.indexOf(',', comma1 + 1);
+    int comma3 = (comma2 == -1) ? -1 : input.indexOf(',', comma2 + 1);
+
+    // 쉼 표 3개가 없으면 그냥 무시하거나 에러 메시지
+    if (comma1 == -1 || comma2 == -1 || comma3 == -1) {
+      Serial.println("Invalid format: must have 3 commas, e.g. 2000,500,2000,");
+      return;
+    }
+
+    String token1 = input.substring(0, comma1);             // 예: "2000"
+    String token2 = input.substring(comma1 + 1, comma2);    // 예: "500"
+    String token3 = input.substring(comma2 + 1, comma3);    // 예: "2000"
+    String token4 = input.substring(comma3 + 1);            // 예: "" or "PCINT2"
+    token4.trim();
+
+    // 듀레이션 파싱
+    unsigned int newRed    = token1.toInt();
+    unsigned int newYellow = token2.toInt();
+    unsigned int newGreen  = token3.toInt();
+
+    if (newRed > 0 && newYellow > 0 && newGreen > 0) {
+      intervalRed    = newRed;
+      intervalYellow = newYellow;
+      intervalGreen  = newGreen;
+      Serial.print("Intervals updated to: ");
+      Serial.print(intervalRed);
+      Serial.print(", ");
+      Serial.print(intervalYellow);
+      Serial.print(", ");
+      Serial.println(intervalGreen);
+    } else {
+      Serial.println("Invalid intervals provided.");
+      return;
+    }
+
+    // 모드 토큰이 비어 있지 않으면 모드 변경
+    if (token4.length() > 0) {
+      if (token4.equals("Default")) {
+        mode1Active = false;
+        mode2Active = false;
+        mode3Active = false;
+        stateStartTime = millis();  
+        currentState = BLINK_RED;  
+      }
+      else if (token4.equals("PCINT1")) {
+        mode1Active = true;
+        mode2Active = false;
+        mode3Active = false;
+        ledPattern = PATTERN_RED;
+      }
+      else if (token4.equals("PCINT2")) {
+        mode1Active = false;
+        mode2Active = true;
+        mode3Active = false;
+        ledPattern = PATTERN_MODE2_TOGGLE;
+      }
+      else if (token4.equals("PCINT3")) {
+        mode1Active = false;
+        mode2Active = false;
+        mode3Active = true;
+        ledPattern = PATTERN_OFF;
+      }
+      else {
+        Serial.println("Invalid mode provided.");
+      }
+    }
+  }
+}
+```
+## 두 코드의 차이점
+
+### 1. 입력 형식
+- **기존**: `"2000,500,2000"` 형태로 세 개의 정수(빨강·노랑·초록 유지시간)만 처리  
+- **확장**: `"2000,500,2000,PCINT2"` 형태로 네 번째 필드(모드 토큰)까지 인식
+
+### 2. 모드 변경 기능
+- **기존**: 유지 시간(`intervalRed`, `intervalYellow`, `intervalGreen`)만 갱신  
+- **확장**: 네 번째 토큰이 존재하면 `Default`, `PCINT1`, `PCINT2`, `PCINT3` 중 하나로 모드를 전환  
+  - `mode1Active`, `mode2Active`, `mode3Active`를 설정하고, `ledPattern`도 적절히 바꿈
+
+### 3. 에러 처리
+- **기존**: 쉼표가 2개(총 3개의 값)가 없으면 에러 메시지  
+- **확장**: 쉼표가 3개(총 4개의 값) 이상 있어야 하며, 모드 토큰이 없을 수도 있으므로(`token4`가 `""`), 빈 문자열이면 유지 시간만 변경
+
+### 4. 기존 로직과의 호환성
+- **기존** 입력 `"2000,500,2000,"` 처럼 뒤에 쉼표만 붙여도 유지 시간 갱신 가능(모드 변경 없음)  
+- **새 기능**: `"2000,500,2000,PCINT2"`로 유지 시간과 모드 변경을 한꺼번에 처리
+
+이처럼 `serialInputTaskCallback()` 함수에서 **네 번째 필드**를 해석해 모드를 전환할 수 있게 함으로써,  
+버튼 인터럽트뿐 아니라 시리얼 입력을 통해서도 **긴급 모드**, **전체 LED 토글**, **LED 끔**, **기본 상태 머신** 등  
+다양한 모드를 제어할 수 있게 되었습니다. 그 외 상태 머신, TaskScheduler, 버튼 인터럽트 로직은 기존과 동일하게 동작하므로,  
+**주요 변경 사항**은 오직 시리얼 입력 태스크 부분에 집중된 점이 특징입니다.
+
+---
+
+# (기존) Arduino 신호등 제어 코드
 
 ## 전체 동작 원리
 
