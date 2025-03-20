@@ -21,12 +21,15 @@
 // 가변저항 핀 정의: LED 밝기 조절에 사용
 #define POTENTIOMETER A5
 
+// 디바운싱 딜레이 (밀리초)
+#define DEBOUNCE_DELAY 50
+
 // -------------------------
 // 태스크 주기 정의 (밀리초 단위)
 // -------------------------
 
 // 시리얼 입력 태스크: 시리얼 모니터로부터 입력을 받는 주기
-#define RX_DURATION   500
+#define RX_DURATION   100
 
 // 시리얼 출력 태스크: LED 상태 및 모드 정보를 시리얼 모니터에 출력하는 주기
 #define TX_DURATION   100
@@ -154,18 +157,14 @@ void renderLED() {
  * 내부의 정적 변수(prevTime)를 사용해 마지막 토글 시간을 기억하며, 500ms마다 토글 상태를 변경한다.
  */
 void renderMode2() {
-  // 정적 변수: 함수 호출 간에도 값을 유지
   static unsigned long prevTime = millis();
   unsigned long now = millis();
 
-  // 500ms 경과 시 토글
   if (now - prevTime >= 500) {
     prevTime = now;
-    // 현재 ledPattern이 PATTERN_MODE2_TOGGLE이면 OFF, 그렇지 않으면 PATTERN_MODE2_TOGGLE로 전환
     ledPattern = (ledPattern == PATTERN_MODE2_TOGGLE) ? PATTERN_OFF : PATTERN_MODE2_TOGGLE;
   }
 
-  // 토글 상태에 따라 모든 LED를 켜거나 끔
   if (ledPattern == PATTERN_MODE2_TOGGLE) {
     analogWriteRYG(brightness, brightness, brightness);
   } else {
@@ -185,87 +184,64 @@ void renderMode2() {
  * 각 상태에 따라 유지 시간을 확인한 후, 다음 상태로 전환하거나 깜빡임 효과를 적용한다.
  */
 void updateStateMachine() {
-  // 모드 전환이 활성화된 경우 상태 머신 동작 중단
   if (mode1Active || mode2Active || mode3Active) return;
 
   unsigned long now = millis();
-
-  // 상태에 따른 동작 처리
   switch (currentState) {
     case BLINK_RED:
-      // 빨간 LED 점멸 상태: PATTERN_RED 적용
       ledPattern = PATTERN_RED;
       if (now - stateStartTime >= intervalRed) {
-        // 유지 시간이 지나면 다음 상태로 전환
         stateStartTime = now;
         currentState = BLINK_YELLOW1;
       }
       break;
-
     case BLINK_YELLOW1:
-      // 첫 번째 노란 LED 점멸 상태: PATTERN_YELLOW 적용
       ledPattern = PATTERN_YELLOW;
       if (now - stateStartTime >= intervalYellow) {
         stateStartTime = now;
         currentState = BLINK_GREEN;
       }
       break;
-
     case BLINK_GREEN:
-      // 초록 LED 점멸 상태: PATTERN_GREEN 적용
       ledPattern = PATTERN_GREEN;
       if (now - stateStartTime >= intervalGreen) {
         stateStartTime = now;
-        // 깜빡임 효과를 위해 FLICK_GREEN 상태로 전환하고, 깜빡임 카운터 초기화
         currentState = FLICK_GREEN;
         flickCount = 0;
       }
       break;
-
     case FLICK_GREEN:
-      // 초록 LED 깜빡임 상태: 정해진 간격마다 ON/OFF 전환
       if (now - stateStartTime >= intervalFlick) {
         stateStartTime = now;
-        // 현재 상태에 따라 LED를 ON 또는 OFF로 전환
         ledPattern = (ledPattern == PATTERN_GREEN) ? PATTERN_OFF : PATTERN_GREEN;
         flickCount++;
-        // 6번 깜빡임(ON/OFF 전환)을 완료하면 다음 상태로 전환
         if (flickCount >= 7) {
           currentState = BLINK_YELLOW2;
           stateStartTime = now;
         }
       }
       break;
-
     case BLINK_YELLOW2:
-      // 두 번째 노란 LED 점멸 상태: PATTERN_YELLOW 적용
       ledPattern = PATTERN_YELLOW;
       if (now - stateStartTime >= intervalYellow) {
         stateStartTime = now;
-        // 다시 초기 상태인 BLINK_RED로 전환하여 반복
         currentState = BLINK_RED;
       }
       break;
   }
 }
 
-// 상태 머신 업데이트 태스크 생성: TASK_UPDATE_DURATION 간격마다 updateStateMachine() 호출
-Task taskStateMachine(TASK_UPDATE_DURATION, TASK_FOREVER, []() {updateStateMachine();});
+// 태스크 생성 및 등록
+Task taskStateMachine(TASK_UPDATE_DURATION, TASK_FOREVER, []() { updateStateMachine(); });
 
-// -------------------------
-// 시리얼 모니터 출력 태스크: LED 밝기와 모드 상태, LED ON/OFF 상태 출력
-// -------------------------
 /**
  * @brief 시리얼 모니터에 현재 LED 밝기, 활성화된 모드, 그리고 각 LED의 ON/OFF 상태를 출력한다.
  *
  * LED 상태는 ledPattern 값에 따라 단순 이진 값(ON=1, OFF=0)으로 출력된다.
  */
 void serialMonitorTaskCallback() {
-  // 현재 밝기를 'B:' 뒤에 출력
   Serial.print("B:");
   Serial.print(brightness);
-
-  // 현재 활성화된 모드를 'M:' 뒤에 출력
   Serial.print(" M:");
   if (mode1Active) {
     Serial.print("PCINT1");
@@ -277,29 +253,16 @@ void serialMonitorTaskCallback() {
     Serial.print("Default");
   }
 
-  // LED 상태를 결정: 각 LED에 대해 0 또는 1 값을 결정 (1이면 LED가 켜진 상태)
   int rState = 0, yState = 0, gState = 0;
   switch (ledPattern) {
-    case PATTERN_RED:
-      rState = 1;
-      break;
-    case PATTERN_YELLOW:
-      yState = 1;
-      break;
-    case PATTERN_GREEN:
-      gState = 1;
-      break;
+    case PATTERN_RED: rState = 1; break;
+    case PATTERN_YELLOW: yState = 1; break;
+    case PATTERN_GREEN: gState = 1; break;
     case PATTERN_MODE2_TOGGLE:
-      // 모드2에서는 전체 LED 토글 동작 중이므로 모든 LED가 ON 상태로 간주
-      rState = 1;
-      yState = 1;
-      gState = 1;
+      rState = yState = gState = 1;
       break;
-    default:
-      // PATTERN_OFF 또는 기타 예외 케이스: 모든 LED OFF
-      break;
+    default: break;
   }
-  // LED 상태를 'O:' 뒤에 "r,y,g" 형식으로 출력
   Serial.print(" O:");
   Serial.print(rState);
   Serial.print(",");
@@ -308,103 +271,134 @@ void serialMonitorTaskCallback() {
   Serial.println(gState);
 }
 
-// 시리얼 출력 태스크 생성: TX_DURATION 간격마다 serialMonitorTaskCallback() 호출
 Task taskSerialOutput(TX_DURATION, TASK_FOREVER, &serialMonitorTaskCallback);
 
-// -------------------------
-// 시리얼 입력 태스크: 외부에서 LED 유지시간을 업데이트하기 위한 입력 처리
-// -------------------------
 /**
- * @brief 시리얼로부터 입력받은 문자열을 파싱하여 LED 유지시간(intervalRed, intervalYellow, intervalGreen)을 갱신한다.
+ * @brief 시리얼로부터 입력받은 문자열을 파싱하여 LED 유지시간(세 필드)과 모드 변경(옵션)을 갱신한다.
  *
- * 입력 형식: "2000,500,2000" 처럼 쉼표로 구분된 세 개의 정수값을 기대.
+ * 입력 형식: "2000,500,2000,PCINT2"
+ * 모드 필드는 변경이 필요할 때만 값을 포함하며, 빈 문자열일 경우 유지시간만 업데이트한다.
  */
 void serialInputTaskCallback() {
-  // 시리얼 버퍼에 데이터가 있을 때 처리
   if (Serial.available()) {
-    String input = Serial.readStringUntil('\n');  // 개행 문자까지 읽음
-    input.trim();  // 문자열 양쪽의 공백 제거
-    if (input.length() > 0) {
-      // 첫 번째와 두 번째 쉼표 위치를 찾아서 세 값으로 분리
-      int firstComma = input.indexOf(',');
-      int secondComma = input.indexOf(',', firstComma + 1);
-      if (firstComma != -1 && secondComma != -1) {
-        // 쉼표를 기준으로 각 부분을 정수로 변환
-        unsigned int newRed = input.substring(0, firstComma).toInt();
-        unsigned int newYellow = input.substring(firstComma + 1, secondComma).toInt();
-        unsigned int newGreen = input.substring(secondComma + 1).toInt();
-        // 새로 입력받은 값들이 유효한 양수이면 각 유지시간을 갱신
-        if (newRed > 0 && newYellow > 0 && newGreen > 0) {
-          intervalRed = newRed;
-          intervalYellow = newYellow;
-          intervalGreen = newGreen;
-          Serial.print("Intervals updated to: ");
-          Serial.print(intervalRed);
-          Serial.print(", ");
-          Serial.print(intervalYellow);
-          Serial.print(", ");
-          Serial.println(intervalGreen);
-        } else {
-          Serial.println("Invalid intervals provided.");
-        }
-      } else {
-        Serial.println("Invalid input format. Use: 2000,500,2000");
+    String input = Serial.readStringUntil('\n');
+    input.trim();
+    if (input.length() == 0) { return; }
+    int comma1 = input.indexOf(',');
+    int comma2 = (comma1 == -1) ? -1 : input.indexOf(',', comma1 + 1);
+    int comma3 = (comma2 == -1) ? -1 : input.indexOf(',', comma2 + 1);
+
+    // 쉼표 3개가 없으면 그냥 무시하거나 에러 메시지
+    if (comma1 == -1 || comma2 == -1 || comma3 == -1) {
+      // 필요하다면 에러 메시지
+      Serial.println("Invalid format: must have 3 commas, e.g. 2000,500,2000,");
+      return;
+    }
+
+    String token1 = input.substring(0, comma1);             // 예: "2000"
+    String token2 = input.substring(comma1 + 1, comma2);    // 예: "500"
+    String token3 = input.substring(comma2 + 1, comma3);    // 예: "2000"
+    String token4 = input.substring(comma3 + 1);            // 예: "" or "PCINT2"
+    token4.trim();
+
+    // 듀레이션 파싱
+    unsigned int newRed    = token1.toInt();
+    unsigned int newYellow = token2.toInt();
+    unsigned int newGreen  = token3.toInt();
+
+    if (newRed > 0 && newYellow > 0 && newGreen > 0) {
+      // 듀레이션 업데이트
+      intervalRed    = newRed;
+      intervalYellow = newYellow;
+      intervalGreen  = newGreen;
+      Serial.print("Intervals updated to: ");
+      Serial.print(intervalRed);
+      Serial.print(", ");
+      Serial.print(intervalYellow);
+      Serial.print(", ");
+      Serial.println(intervalGreen);
+    } else {
+      Serial.println("Invalid intervals provided.");
+      return;
+    }
+
+    // 모드 토큰이 비어 있지 않으면 모드 변경
+    if (token4.length() > 0) {
+      if (token4.equals("Default")) {
+        mode1Active = false;
+        mode2Active = false;
+        mode3Active = false;
+        stateStartTime = millis(); ///////////////////////////////////////////////////////////////////// Test Requir!!!!!!!!!!!!!!!!!
+        currentState = BLINK_RED;  /////////////////////////////////////////////////////////////////////
+      }
+      else if (token4.equals("PCINT1")) {
+        mode1Active = true;
+        mode2Active = false;
+        mode3Active = false;
+        ledPattern = PATTERN_RED;
+      }
+      else if (token4.equals("PCINT2")) {
+        mode1Active = false;
+        mode2Active = true;
+        mode3Active = false;
+        ledPattern = PATTERN_MODE2_TOGGLE;
+      }
+      else if (token4.equals("PCINT3")) {
+        mode1Active = false;
+        mode2Active = false;
+        mode3Active = true;
+        ledPattern = PATTERN_OFF;
+      }
+      else {
+        Serial.println("Invalid mode provided.");
       }
     }
   }
 }
 
-// 시리얼 입력 태스크 생성: RX_DURATION 간격마다 serialInputTaskCallback() 호출
+
 Task taskSerialInput(RX_DURATION, TASK_FOREVER, &serialInputTaskCallback);
 
 // -------------------------
-// 버튼 인터럽트 콜백 함수들: 각 버튼 누름에 따라 모드 전환 처리
+// 버튼 인터럽트 콜백 함수들: 각 버튼 누름에 따라 모드 전환 처리 (디바운싱 적용)
 // -------------------------
 
-/**
- * @brief 버튼1 인터럽트 콜백 함수
- *
- * 모드1 토글: 버튼1이 눌리면 모드1 활성화 (빨간 LED 고정). 다시 누르면 모드1 비활성화하고 상태 머신으로 복귀.
- */
 void PCINTCallbackButton1() {
-  static bool lastState = HIGH;  // 이전 버튼 상태를 저장
-  bool currentStateBtn = digitalRead(BUTTON1);  // 현재 버튼 상태 읽기
-
-  // 버튼이 HIGH에서 LOW로 전환되었을 때(버튼 누름 감지)
+  static unsigned long lastDebounceTime1 = 0;
+  unsigned long now = millis();
+  if (now - lastDebounceTime1 < DEBOUNCE_DELAY) return;
+  lastDebounceTime1 = now;
+  
+  static bool lastState = HIGH;
+  bool currentStateBtn = digitalRead(BUTTON1);
   if (lastState == HIGH && currentStateBtn == LOW) {
     if (!mode1Active) {
-      // 모드1을 활성화하고 다른 모드는 비활성화
       mode1Active = true;
       mode2Active = false;
       mode3Active = false;
-      // 모드1에서는 상태 머신 동작 대신 빨간 LED를 지속적으로 표시
       ledPattern = PATTERN_RED;
     } else {
-      // 모드1이 이미 활성화되어 있으면 비활성화 후 상태 머신 복귀
       mode1Active = false;
-      stateStartTime = millis();  // 상태 전환 시간 초기화
-      currentState = BLINK_RED;   // 초기 상태로 복귀
+      stateStartTime = millis();
+      currentState = BLINK_RED;
     }
   }
-  // 마지막 버튼 상태 업데이트
   lastState = currentStateBtn;
 }
 
-/**
- * @brief 버튼2 인터럽트 콜백 함수
- *
- * 모드2 토글: 버튼2가 눌리면 모드2 활성화 (전체 LED 500ms 간격 토글). 다시 누르면 모드2 비활성화하고 상태 머신 복귀.
- */
 void PCINTCallbackButton2() {
+  static unsigned long lastDebounceTime2 = 0;
+  unsigned long now = millis();
+  if (now - lastDebounceTime2 < DEBOUNCE_DELAY) return;
+  lastDebounceTime2 = now;
+  
   static bool lastState = HIGH;
   bool currentStateBtn = digitalRead(BUTTON2);
-
   if (lastState == HIGH && currentStateBtn == LOW) {
     if (!mode2Active) {
       mode2Active = true;
       mode1Active = false;
       mode3Active = false;
-      // 모드2에서는 상태 머신 대신 토글 패턴 적용
       ledPattern = PATTERN_MODE2_TOGGLE;
     } else {
       mode2Active = false;
@@ -415,21 +409,19 @@ void PCINTCallbackButton2() {
   lastState = currentStateBtn;
 }
 
-/**
- * @brief 버튼3 인터럽트 콜백 함수
- *
- * 모드3 토글: 버튼3이 눌리면 모드3 활성화 (모든 LED를 끔). 다시 누르면 모드3 비활성화하고 상태 머신 복귀.
- */
 void PCINTCallbackButton3() {
+  static unsigned long lastDebounceTime3 = 0;
+  unsigned long now = millis();
+  if (now - lastDebounceTime3 < DEBOUNCE_DELAY) return;
+  lastDebounceTime3 = now;
+  
   static bool lastState = HIGH;
   bool currentStateBtn = digitalRead(BUTTON3);
-
   if (lastState == HIGH && currentStateBtn == LOW) {
     if (!mode3Active) {
       mode3Active = true;
       mode1Active = false;
       mode2Active = false;
-      // 모드3에서는 상태 머신 대신 모든 LED를 끔
       ledPattern = PATTERN_OFF;
     } else {
       mode3Active = false;
@@ -444,36 +436,27 @@ void PCINTCallbackButton3() {
 // Setup 함수: 초기 설정 및 태스크, 인터럽트 설정
 // -------------------------
 void setup() {
-  // 시리얼 통신 초기화 (보오율: 9600)
   Serial.begin(9600);
-
-  // LED 핀을 출력 모드로 설정
   pinMode(LED_RED, OUTPUT);
   pinMode(LED_YELLOW, OUTPUT);
   pinMode(LED_GREEN, OUTPUT);
-
-  // 버튼 핀을 내부 풀업(PULLUP) 모드로 설정 (버튼 누름 시 LOW 신호)
   pinMode(BUTTON1, INPUT_PULLUP);
   pinMode(BUTTON2, INPUT_PULLUP);
   pinMode(BUTTON3, INPUT_PULLUP);
 
-  // 각 버튼에 대해 핀 체인지 인터럽트를 설정하여 버튼 상태 변화 감지
   attachPCINT(digitalPinToPCINT(BUTTON1), PCINTCallbackButton1, CHANGE);
   attachPCINT(digitalPinToPCINT(BUTTON2), PCINTCallbackButton2, CHANGE);
   attachPCINT(digitalPinToPCINT(BUTTON3), PCINTCallbackButton3, CHANGE);
 
-  // TaskScheduler 초기화 및 태스크 등록
   runner.init();
   runner.addTask(taskStateMachine);
   runner.addTask(taskSerialOutput);
   runner.addTask(taskSerialInput);
 
-  // 등록한 태스크들을 활성화
   taskStateMachine.enable();
   taskSerialOutput.enable();
   taskSerialInput.enable();
 
-  // 상태 머신 초기 상태 설정: 현재 시간 기준으로 시작 시간 초기화
   stateStartTime = millis();
 }
 
@@ -481,17 +464,14 @@ void setup() {
 // Loop 함수: 메인 루프, 반복 실행
 // -------------------------
 void loop() {
-  // 매 반복마다 가변저항(POTENTIOMETER) 값을 읽어 LED 밝기 업데이트
   int potVal = analogRead(POTENTIOMETER);
   brightness = map(potVal, 0, 1023, 0, 255);
 
-  // 모드2가 활성화되어 있으면 모드2 전용 렌더링 함수 호출, 그렇지 않으면 기본 LED 렌더링
   if (mode2Active) {
     renderMode2();
   } else {
     renderLED();
   }
-
-  // TaskScheduler를 통해 등록된 태스크들을 실행
+  
   runner.execute();
 }
