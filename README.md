@@ -29,21 +29,57 @@ Arduino와 PC(웹 브라우저)가 **시리얼 통신**으로 연결되며, 웹 
 
 아래 표는 5가지 주요 손동작(비전 패턴)과 팔레트 모드에서의 색상 선택 과정을 요약한 것입니다. 각 동작은 LED 패턴 혹은 모드를 매핑해, 신호등 제어를 더욱 유연하고 편리하게 만듭니다.
 
-### 1. 주요 손동작
+<!-- 1. 주요 손동작 -->
+<table style="width:100%; table-layout: fixed; border-collapse: collapse;" border="1">
+  <tr>
+    <th style="width:16.66%;">손동작</th>
+    <th style="width:16.66%;">Default</th>
+    <th style="width:16.66%;">Emergency</th>
+    <th style="width:16.66%;">ThumbsUp</th>
+    <th style="width:16.66%;">ThumbsDown</th>
+    <th style="width:16.66%;">Palette</th>
+  </tr>
+  <tr>
+    <td><strong>패턴 이미지</strong></td>
+    <td><div align="center"><img src="image/gesture_default.jpg" alt="Default" width="100"/></div></td>
+    <td><div align="center"><img src="image/gesture_emergency.jpg" alt="Emergency" width="100"/></div></td>
+    <td><div align="center"><img src="image/gesture_thumbsup.jpg" alt="ThumbsUp" width="100"/></div></td>
+    <td><div align="center"><img src="image/gesture_thumbsdown.jpg" alt="ThumbsDown" width="100"/></div></td>
+    <td><div align="center"><img src="image/gesture_palette.jpg" alt="Palette" width="100"/></div></td>
+  </tr>
+  <tr>
+    <td><strong>설명</strong></td>
+    <td>손가락이 모두 모여 있는 상태. 기본 신호등 패턴 유지</td>
+    <td>엄지·검지·중지를 펴고 약지·새끼를 접은 상태. 긴급 모드(적색 LED)로 전환</td>
+    <td>엄지만 위로 든 동작. 모든 LED를 동일 주기로 깜빡이게 하는 모드로 전환</td>
+    <td>엄지만 아래로 향한 동작. 모든 LED가 꺼지는 모드로 전환</td>
+    <td>다섯 손가락을 펼쳐 팔레트 모드 진입. LED 색상·주기 조절 UI 활성화</td>
+  </tr>
+</table>
+<br>
 
-| 손동작        | **Default**                                                   | **Emergency**                                                 | **ThumbsUp**                                                  | **ThumbsDown**                                                | **Palette**                                                   |
-|---------------|---------------------------------------------------------------|---------------------------------------------------------------|---------------------------------------------------------------|---------------------------------------------------------------|---------------------------------------------------------------|
-| **패턴 이미지**   | <img src="image/gesture_default.jpg" alt="Default" width="100"/> | <img src="image/gesture_emergency.jpg" alt="Emergency" width="100"/> | <img src="image/gesture_thumbsup.jpg" alt="ThumbsUp" width="100"/> | <img src="image/gesture_thumbsdown.jpg" alt="ThumbsDown" width="100"/> | <img src="image/gesture_palette.jpg" alt="Palette" width="100"/> |
-| **설명**          | 손가락이 모두 모여 있는 상태. 기본 신호등 패턴 유지           | 엄지·검지·중지를 펴고 약지·새끼를 접은 상태. 긴급 모드(적색 LED)로 전환  | 엄지만 위로 든 동작. 모든 LED를 동일 주기로 깜빡이게 하는 모드로 전환  | 엄지만 아래로 향한 동작. 모든 LED가 꺼지는 모드로 전환           | 다섯 손가락을 펼쳐 팔레트 모드 진입. LED 색상·주기 조절 UI 활성화   |
----
-
-### 2. 팔레트 모드 색상 선택
-
-| 색상 선택     | **Red LED**                                                 | **Yellow LED**                                               | **Green LED**                                                |
-|---------------|-------------------------------------------------------------|--------------------------------------------------------------|--------------------------------------------------------------|
-| **패턴 이미지** | <img src="image/palette_red.jpg" alt="Palette Red" width="100"/> | <img src="image/palette_yellow.jpg" alt="Palette Yellow" width="100"/> | <img src="image/palette_green.jpg" alt="Palette Green" width="100"/> |
-| **설명**       | 엄지·검지를 빨간 원 위에 동시에 위치 → 빨간 LED의 주기(또는 밝기) 조절 | 엄지·검지를 노란 원 위에 동시에 위치 → 노란 LED의 주기(또는 밝기) 조절 | 엄지·검지를 초록 원 위에 동시에 위치 → 초록 LED의 주기(또는 밝기) 조절 |
-
+<!-- 2. 팔레트 모드 색상 선택 -->
+<table style="width:100%; table-layout: fixed; border-collapse: collapse;" border="1">
+  <tr>
+    <th style="width:25%;">색상 선택</th>
+    <th style="width:25%;">Red LED</th>
+    <th style="width:25%;">Yellow LED</th>
+    <th style="width:25%;">Green LED</th>
+  </tr>
+  <tr>
+    <td><strong>패턴 이미지</strong></td>
+    <td><div align="center"><img src="image/palette_red.jpg" alt="Palette Red" width="100"/></div></td>
+    <td><div align="center"><img src="image/palette_yellow.jpg" alt="Palette Yellow" width="100"/></div></td>
+    <td><div align="center"><img src="image/palette_green.jpg" alt="Palette Green" width="100"/></div></td>
+  </tr>
+  <tr>
+    <td><strong>설명</strong></td>
+    <td>엄지·검지를 빨간 원 위에 동시에 위치 → 빨간 LED의 주기(또는 밝기) 조절</td>
+    <td>엄지·검지를 노란 원 위에 동시에 위치 → 노랑 LED의 주기(또는 밝기) 조절</td>
+    <td>엄지·검지를 초록 원 위에 동시에 위치 → 초록 LED의 주기(또는 밝기) 조절</td>
+  </tr>
+</table>
+<br>
 
 > **팁**  
 > 팔레트 모드에서 **색상 원 안에 손가락을 약 750ms 이상 유지**하면,  
@@ -56,12 +92,24 @@ Arduino와 PC(웹 브라우저)가 **시리얼 통신**으로 연결되며, 웹 
 ---
 
 ### 추가 사항
-- **카메라**: 이 프로젝트는 일반 노트북 내장 카메라 대신, **Logitech Brio 500** 외장 카메라 기반으로 테스트되었지만,  
-  일반적으로 **어떤 웹캠**이라도 브라우저에서 인식되는 장치라면 사용할 수 있습니다.
+
+- **왼손/오른손 모두 지원**  
+  - HandPose를 활용하여 양손 구분 없이 **손가락 관절 포인트**를 인식하도록 구현하였습니다. 왼손/오른손 어느 쪽을 사용해도 동일하게 동작합니다.  
+  - 다만, 손가락 펼침 방향에 따라 제스처가 미세하게 달라 보일 수 있으므로, 카메라 각도에 맞춰 손을 인식하는 것이 좋습니다.
+
+- **언노운(Unknown) 제스처**  
+  - 정의되지 않은 동작(예: 새끼손가락, 검지손가락만 올리는 등)은 **언노운** 상태로 처리해 모드 전환에 영향을 주지 않습니다.  
+  - 동일한 모드를 반복적으로 전환하고자 할 때, 팔레트 모드 진입·이탈할 때, 잠시 언노운 상태를 활용해 중복 진입을 방지합니다.
+
+- **카메라**:  
+  - 이 프로젝트는 일반 노트북 내장 카메라 대신, **Logitech Brio 500** 외장 카메라 기반으로 테스트되었습니다.  
+  - 일반적으로 **다른 웹캠**이라도 브라우저에서 인식되는 장치라면 사용 가능합니다.
 
 - **상세 코드 설명**:  
   - `arduino` 폴더 내부에는 **신호등 제어 로직**과 **TaskScheduler** 세부 내용이,  
-  - `p5` 폴더 내부에는 **HandPose + Web Serial API
+  - `p5` 폴더 내부에는 **HandPose + Web Serial API** 연동 로직이  
+  각각 `README.md`에 더 자세히 기술되어 있습니다.
+
 ---
 
 # (기존) 임베디드 통신시스템 프로젝트 - 신호등
