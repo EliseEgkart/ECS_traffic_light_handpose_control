@@ -52,25 +52,10 @@ body {
   box-shadow: 0 2px 8px rgba(0,0,0,0.2);
   padding: 8px; 
   min-height: 0; 
-  font-size: 12px; /* 원하는 크기로 조정 (예: 14px) */
+  font-size: 40px; /* 원하는 크기로 조정 (예: 14px) */
 
 }
 
-/* 테이블 스타일 (한 열만 있어도 동일하게 적용) */
-.log-table {
-  width: 100%;
-  border-collapse: collapse;
-  table-layout: fixed; /* 열 너비 고정 */
-}
-.log-table th, .log-table td {
-  border: 1px solid #ccc;
-  padding: 6px 8px;
-  text-align: left;
-  word-wrap: break-word;
-}
-.log-table th {
-  background: #f2f2f2;
-}
 
 /* (사용하지 않는 #logArea 스타일은 제거 또는 주석 처리)
 #logArea {

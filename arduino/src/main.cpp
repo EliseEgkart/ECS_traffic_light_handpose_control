@@ -288,7 +288,7 @@ void serialInputTaskCallback() {
     int comma2 = (comma1 == -1) ? -1 : input.indexOf(',', comma1 + 1);
     int comma3 = (comma2 == -1) ? -1 : input.indexOf(',', comma2 + 1);
 
-    // 쉼표 3개가 없으면 그냥 무시하거나 에러 메시지
+    // 쉼 표 3개가 없으면 그냥 무시하거나 에러 메시지
     if (comma1 == -1 || comma2 == -1 || comma3 == -1) {
       // 필요하다면 에러 메시지
       Serial.println("Invalid format: must have 3 commas, e.g. 2000,500,2000,");
