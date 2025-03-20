@@ -40,7 +40,7 @@ Arduino와 PC(웹 브라우저)가 **시리얼 통신**으로 연결되며, 웹 
     <th style="width:16.66%;">Palette</th>
   </tr>
   <tr>
-    <td><strong>패턴 이미지</strong></td>
+    <th style="width:16.66%;">패턴 이미지</th>
     <td><div align="center"><img src="image/gesture_default.jpg" alt="Default" width="100"/></div></td>
     <td><div align="center"><img src="image/gesture_emergency.jpg" alt="Emergency" width="100"/></div></td>
     <td><div align="center"><img src="image/gesture_thumbsup.jpg" alt="ThumbsUp" width="100"/></div></td>
@@ -48,7 +48,7 @@ Arduino와 PC(웹 브라우저)가 **시리얼 통신**으로 연결되며, 웹 
     <td><div align="center"><img src="image/gesture_palette.jpg" alt="Palette" width="100"/></div></td>
   </tr>
   <tr>
-    <td><strong>설명</strong></td>
+    <th style="width:16.66%;">설명</th>
     <td>손가락이 모두 모여 있는 상태. 기본 신호등 패턴 유지</td>
     <td>엄지·검지·중지를 펴고 약지·새끼를 접은 상태. 긴급 모드(적색 LED)로 전환</td>
     <td>엄지만 위로 든 동작. 모든 LED를 동일 주기로 깜빡이게 하는 모드로 전환</td>
@@ -67,13 +67,13 @@ Arduino와 PC(웹 브라우저)가 **시리얼 통신**으로 연결되며, 웹 
     <th style="width:25%;">Green LED</th>
   </tr>
   <tr>
-    <td><strong>패턴 이미지</strong></td>
+    <th style="width:16.66%;">패턴 이미지</th>
     <td><div align="center"><img src="image/palette_red.jpg" alt="Palette Red" width="100"/></div></td>
     <td><div align="center"><img src="image/palette_yellow.jpg" alt="Palette Yellow" width="100"/></div></td>
     <td><div align="center"><img src="image/palette_green.jpg" alt="Palette Green" width="100"/></div></td>
   </tr>
   <tr>
-    <td><strong>설명</strong></td>
+    <th style="width:16.66%;">설명</th>
     <td>엄지·검지를 빨간 원 위에 동시에 위치 → 빨간 LED의 주기(또는 밝기) 조절</td>
     <td>엄지·검지를 노란 원 위에 동시에 위치 → 노랑 LED의 주기(또는 밝기) 조절</td>
     <td>엄지·검지를 초록 원 위에 동시에 위치 → 초록 LED의 주기(또는 밝기) 조절</td>
@@ -99,7 +99,7 @@ Arduino와 PC(웹 브라우저)가 **시리얼 통신**으로 연결되며, 웹 
 
 - **언노운(Unknown) 제스처**  
   - 정의되지 않은 동작(예: 새끼손가락, 검지손가락만 올리는 등)은 **언노운** 상태로 처리해 모드 전환에 영향을 주지 않습니다.  
-  - 동일한 모드를 반복적으로 전환하고자 할 때, 팔레트 모드 진입·이탈할 때, 잠시 언노운 상태를 활용해 중복 진입을 방지합니다.
+  - 언노운 상태를 활용하여 동일한 모드를 반복적으로 전환하고자 할 때 [예) Default -> Default], 팔레트 모드 진입·이탈할 때, 원할한 제어를 돕습니다.
 
 - **카메라**:  
   - 이 프로젝트는 일반 노트북 내장 카메라 대신, **Logitech Brio 500** 외장 카메라 기반으로 테스트되었습니다.  
