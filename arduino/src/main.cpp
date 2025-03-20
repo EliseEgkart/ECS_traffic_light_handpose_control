@@ -231,7 +231,7 @@ void updateStateMachine() {
   }
 }
 
-// 태스크 생성 및 등록
+// 상태 머신 업데이트 태스크 생성: TASK_UPDATE_DURATION 간격마다 updateStateMachine() 호출
 Task taskStateMachine(TASK_UPDATE_DURATION, TASK_FOREVER, []() { updateStateMachine(); });
 
 /**
@@ -328,8 +328,8 @@ void serialInputTaskCallback() {
         mode1Active = false;
         mode2Active = false;
         mode3Active = false;
-        stateStartTime = millis(); ///////////////////////////////////////////////////////////////////// Test Requir!!!!!!!!!!!!!!!!!
-        currentState = BLINK_RED;  /////////////////////////////////////////////////////////////////////
+        stateStartTime = millis();  
+        currentState = BLINK_RED;  
       }
       else if (token4.equals("PCINT1")) {
         mode1Active = true;
@@ -356,36 +356,52 @@ void serialInputTaskCallback() {
   }
 }
 
-
+// 시리얼 입력 태스크 생성: RX_DURATION 간격마다 serialInputTaskCallback() 호출
 Task taskSerialInput(RX_DURATION, TASK_FOREVER, &serialInputTaskCallback);
 
 // -------------------------
 // 버튼 인터럽트 콜백 함수들: 각 버튼 누름에 따라 모드 전환 처리 (디바운싱 적용)
 // -------------------------
 
+/**
+ * @brief 버튼1 인터럽트 콜백 함수
+ *
+ * 모드1 토글: 버튼1이 눌리면 모드1 활성화 (빨간 LED 고정). 다시 누르면 모드1 비활성화하고 상태 머신으로 복귀.
+ */
 void PCINTCallbackButton1() {
   static unsigned long lastDebounceTime1 = 0;
   unsigned long now = millis();
   if (now - lastDebounceTime1 < DEBOUNCE_DELAY) return;
   lastDebounceTime1 = now;
   
-  static bool lastState = HIGH;
-  bool currentStateBtn = digitalRead(BUTTON1);
+  static bool lastState = HIGH;  // 이전 버튼 상태를 저장
+  bool currentStateBtn = digitalRead(BUTTON1);  // 현재 버튼 상태 읽기
+  
+  // 버튼이 HIGH에서 LOW로 전환되었을 때(버튼 누름 감지)
   if (lastState == HIGH && currentStateBtn == LOW) {
     if (!mode1Active) {
+      // 모드1을 활성화하고 다른 모드는 비활성화
       mode1Active = true;
       mode2Active = false;
       mode3Active = false;
+      // 모드1에서는 상태 머신 동작 대신 빨간 LED를 지속적으로 표시
       ledPattern = PATTERN_RED;
     } else {
-      mode1Active = false;
-      stateStartTime = millis();
-      currentState = BLINK_RED;
+      // 모드1이 이미 활성화되어 있으면 비활성화 후 상태 머신 복귀
+      mode1Active = false;      
+      stateStartTime = millis();  // 상태 전환 시간 초기화
+      currentState = BLINK_RED;   // 초기 상태로 복귀
     }
   }
+  // 마지막 버튼 상태 업데이트
   lastState = currentStateBtn;
 }
 
+/**
+ * @brief 버튼2 인터럽트 콜백 함수
+ *
+ * 모드2 토글: 버튼2가 눌리면 모드2 활성화 (전체 LED 500ms 간격 토글). 다시 누르면 모드2 비활성화하고 상태 머신 복귀.
+ */
 void PCINTCallbackButton2() {
   static unsigned long lastDebounceTime2 = 0;
   unsigned long now = millis();
@@ -399,6 +415,7 @@ void PCINTCallbackButton2() {
       mode2Active = true;
       mode1Active = false;
       mode3Active = false;
+      // 모드2에서는 상태 머신 대신 토글 패턴 적용
       ledPattern = PATTERN_MODE2_TOGGLE;
     } else {
       mode2Active = false;
@@ -409,6 +426,11 @@ void PCINTCallbackButton2() {
   lastState = currentStateBtn;
 }
 
+/**
+ * @brief 버튼3 인터럽트 콜백 함수
+ *
+ * 모드3 토글: 버튼3이 눌리면 모드3 활성화 (모든 LED를 끔). 다시 누르면 모드3 비활성화하고 상태 머신 복귀.
+ */
 void PCINTCallbackButton3() {
   static unsigned long lastDebounceTime3 = 0;
   unsigned long now = millis();
@@ -422,6 +444,7 @@ void PCINTCallbackButton3() {
       mode3Active = true;
       mode1Active = false;
       mode2Active = false;
+      // 모드3에서는 상태 머신 대신 모든 LED를 끔
       ledPattern = PATTERN_OFF;
     } else {
       mode3Active = false;
@@ -436,27 +459,36 @@ void PCINTCallbackButton3() {
 // Setup 함수: 초기 설정 및 태스크, 인터럽트 설정
 // -------------------------
 void setup() {
+  // 시리얼 통신 초기화 (Baud Rate: 9600)
   Serial.begin(9600);
+
+  // LED 핀을 출력 모드로 설정
   pinMode(LED_RED, OUTPUT);
   pinMode(LED_YELLOW, OUTPUT);
   pinMode(LED_GREEN, OUTPUT);
+
+  // 버튼 핀을 내부 풀업(PULLUP) 모드로 설정 (버튼 누름 시 LOW 신호)
   pinMode(BUTTON1, INPUT_PULLUP);
   pinMode(BUTTON2, INPUT_PULLUP);
   pinMode(BUTTON3, INPUT_PULLUP);
 
+  // 각 버튼에 대해 핀 체인지 인터럽트를 설정하여 버튼 상태 변화 감지
   attachPCINT(digitalPinToPCINT(BUTTON1), PCINTCallbackButton1, CHANGE);
   attachPCINT(digitalPinToPCINT(BUTTON2), PCINTCallbackButton2, CHANGE);
   attachPCINT(digitalPinToPCINT(BUTTON3), PCINTCallbackButton3, CHANGE);
 
+  // TaskScheduler 초기화 및 태스크 등록
   runner.init();
   runner.addTask(taskStateMachine);
   runner.addTask(taskSerialOutput);
   runner.addTask(taskSerialInput);
 
+  // 등록한 태스크들을 활성화
   taskStateMachine.enable();
   taskSerialOutput.enable();
   taskSerialInput.enable();
 
+  // 상태 머신 초기 상태 설정: 현재 시간 기준으로 시작 시간 초기화
   stateStartTime = millis();
 }
 
@@ -464,14 +496,17 @@ void setup() {
 // Loop 함수: 메인 루프, 반복 실행
 // -------------------------
 void loop() {
+  // 매 반복마다 가변저항(POTENTIOMETER) 값을 읽어 LED 밝기 업데이트
   int potVal = analogRead(POTENTIOMETER);
   brightness = map(potVal, 0, 1023, 0, 255);
 
+  // 모드2가 활성화되어 있으면 모드2 전용 렌더링 함수 호출, 그렇지 않으면 기본 LED 렌더링
   if (mode2Active) {
     renderMode2();
   } else {
     renderLED();
   }
-  
+
+  // TaskScheduler를 통해 등록된 태스크들을 실행
   runner.execute();
 }

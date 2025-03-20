@@ -104,26 +104,99 @@
 
 ---
 
+# 임베디드 통신시스템 프로젝트 - 핸드포즈 제어 신호등
+이 확장된 프로젝트는 **ml5.js**의 HandPose 모델로 웹캠에서 감지한 손동작을 분석하고, 이를 아두이노 신호등 제어 로직과 연동하여 **긴급 모드**, ****, **팔레트 모드** 등을 직관적으로 전환할 수 있도록 구성했습니다.
+
+---
+
+## 시연영상
+아래 영상을 통해 손동작 인식 과정과, 그에 따라 실시간으로 반응하는 LED 신호등을 확인할 수 있습니다.  
+[![Video Label](http://img.youtube.com/vi/O_3jzSIpDpo/0.jpg)](https://youtu.be/O_3jzSIpDpo)
+
+---
+
+## 시스템 다이어그램
+Arduino와 PC(웹 브라우저)가 **시리얼 통신**으로 연결되며,  
+웹 브라우저에서는 **p5.js**로 구성된 UI와 **Web Serial API**를 통해 시리얼 송수신을 처리합니다.
+
+![시스템 다이어그램](image/S2_System_Diagram.png)
+
+---
+
+## 개요
+- **목적**  
+  - 버튼·슬라이더 중심의 제어 방식을 **비전 기반 제스처 인식**으로 확장  
+  - 손동작(제스처)에 따라 긴급 모드, 기본 모드, 팔레트 모드 등을 유연하게 전환
+
+- **구성**  
+  - **PC(브라우저)**: HandPose로 손동작 인식 후 시리얼 전송  
+  - **아두이노**: 수신된 명령에 따라 LED 상태 갱신, TaskScheduler로 신호등 패턴 유지
+
+---
+
+## 손동작(비전패턴) 정의
+
+아래 표에는 5가지 주요 손동작(비전 패턴)과 팔레트 모드에서의 색상 선택 과정을 담았습니다.  
+각 동작에 대응하는 LED 패턴이나 모드를 적절히 매핑하여 제어할 수 있습니다.
+
+### 1. 주요 손동작
+
+| 비전         | 패턴 이미지                                | 설명                                                                    |
+|:-------------|:--------------------------------------------|:------------------------------------------------------------------------|
+| **Default**  | ![Default](image/gesture_default.jpg)       | 손가락이 모두 모여 있는 기본 상태, 신호등이 일반 패턴으로 동작              |
+| **Emergency**| ![Emergency](image/gesture_emergency.jpg)   | 엄지·검지·중지를 펴고 약지·새끼 접은 상태 → ‘긴급 모드(패턴)’ 모드로 전환   |
+| **ThumbsUp** | ![ThumbsUp](image/gesture_thumbsup.jpg)     | 엄지만 위로 → ‘모든 LED 깜빡이기(패턴)’ 모드로 전환                       |
+| **ThumbsDown**| ![ThumbsDown](image/gesture_thumbsdown.jpg)| 엄지만 아래로 → ‘모든 LED OFF(패턴)’ 모드로 전환                          |
+| **Palette**  | ![Palette](image/gesture_palette.jpg)       | 다섯 손가락을 펼쳐 ‘팔레트 모드 진입’, LED 색상·주기 조절 UI 활성화            |
+
+---
+
+### 2. 팔레트 모드 색상 선택
+
+| 색상선택    | 패턴 이미지                                     | 설명                                                                          |
+|:-----------:|:-----------------------------------------------:|:------------------------------------------------------------------------------|
+| **빨간 LED** | ![Palette Red](image/palette_red.jpg)           | 엄지·검지를 빨간 원 위에 동시에 위치 → 빨간 LED의 주기(또는 밝기) 조절            |
+| **노랑 LED** | ![Palette Yellow](image/palette_yellow.jpg)     | 엄지·검지를 노란 원 위에 동시에 위치 → 노랑 LED의 주기(또는 밝기) 조절            |
+| **초록 LED** | ![Palette Green](image/palette_green.jpg)       | 엄지·검지를 초록 원 위에 동시에 위치 → 초록 LED의 주기(또는 밝기) 조절            |
+
+> **팁**  
+> 팔레트 모드에서 **색상 원 안에 손가락을 일정 시간(약 750ms) 이상 유지**하면,  
+> 손가락 사이 거리(`fingerDistance`)를 측정해 **`signalPeriod`**나 **LED 밝기**를  
+> **실시간으로 조절**할 수 있습니다.
+
+---
+
 ## 디렉터리 구조
 
+아래는 **ECS_TRAFFIC_LIGHT_HANDPOSE_CONTROL** 프로젝트의 전체 폴더 구성입니다.  
+Arduino 쪽은 **PlatformIO** 기반으로, 웹 쪽은 **p5** 폴더 안에 배치되어 있습니다.
+
 ```plaintext
-ECS_TRAFFIC_LIGHT/
+ECS_TRAFFIC_LIGHT_HANDPOSE_CONTROL/
 ├── arduino
+│   ├── .pio
 │   ├── .vscode
 │   ├── include
 │   ├── lib
 │   ├── src
-│   │   └── main.cpp         # 아두이노 신호등 제어 메인 코드
+│   │   └── main.cpp               # 아두이노 신호등 제어 메인 코드
 │   ├── test
 │   ├── .gitignore
-│   ├── platformio.ini       # PlatformIO 설정 파일
-│   └── README.md            # (아두이노 관련 설명이 포함될 수 있음)
-│
+│   ├── platformio.ini             # PlatformIO 설정 파일
+│   └── README.md                  # (아두이노 관련 설명이 포함될 수 있음)
 ├── image
 │   ├── Arduino_circuit_diagram.png  # 아두이노 회로도 이미지 1
 │   ├── Arduino_circuit.jpg          # 아두이노 회로도 이미지 2
-│   └── S1_System_Diagram.png        # 시스템 다이어그램
-│
+│   ├── gesture_default.jpg          # 기본(Default) 손동작 이미지
+│   ├── gesture_emergency.jpg        # 긴급(Emergency) 손동작 이미지
+│   ├── gesture_thumbsdown.jpg       # 엄지 아래(ThumbsDown) 손동작 이미지
+│   ├── gesture_thumbsup.jpg         # 엄지 위(ThumbsUp) 손동작 이미지
+│   ├── gesture_palette.jpg          # 팔레트(Palette) 손동작 이미지
+│   ├── palette_red.jpg             # 팔레트 모드에서 빨간 LED 선택 시연 이미지
+│   ├── palette_yellow.jpg          # 팔레트 모드에서 노랑 LED 선택 시연 이미지
+│   ├── palette_green.jpg           # 팔레트 모드에서 초록 LED 선택 시연 이미지
+│   ├── S1_System_Diagram.png       # 시스템 다이어그램 (신호등 일반 버전)
+│   └── S2_System_Diagram.png       # 시스템 다이어그램 (신호등 확장 버전)
 ├── p5
 │   ├── index.html            # 웹 UI (HTML)
 │   ├── README.md             # (p5 관련 설명이 포함될 수 있음)

@@ -46,11 +46,11 @@ body {
 
 /* 로그 패널: 영상 바로 아래 */
 .log-panel {
-  width: 600px;
+  width: 620px;
   background: #fff;
   border-radius: 10px;
   box-shadow: 0 2px 8px rgba(0,0,0,0.2);
-  padding: 10px; 
+  padding: 8px; 
   min-height: 0; 
   font-size: 12px; /* 원하는 크기로 조정 (예: 14px) */
 
